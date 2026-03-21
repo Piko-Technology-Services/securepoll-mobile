@@ -1,5 +1,12 @@
-// /app/poll/[id].tsx
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -8,9 +15,11 @@ import { getToken } from "../../../src/lib/storage";
 export default function PollScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const id = params.id as string; // <-- dynamic route id
+  const id = params.id as string;
+
   const [poll, setPoll] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedNominees, setSelectedNominees] = useState<any>({});
 
   const fetchPoll = async () => {
     try {
@@ -27,55 +36,62 @@ export default function PollScreen() {
     }
   };
 
-  const castVote = async (categoryId: number, nomineeId: number) => {
-    try {
-      const token = await getToken();
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/polls/${id}/vote`,
-        { category_id: categoryId, nominee_id: nomineeId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert("Vote cast successfully!");
-    } catch (err) {
-      console.log(err);
-      alert("Error casting vote");
-    }
+  const selectNominee = (categoryId: number, nomineeId: number) => {
+    setSelectedNominees((prev: any) => ({
+      ...prev,
+      [categoryId]: nomineeId,
+    }));
+  };
+
+  const handleSubmitVote = () => {
+    // Navigate to verification screen
+    router.push({
+      pathname: "/vote/verify",
+      params: {
+        pollId: id,
+        selections: JSON.stringify(selectedNominees),
+      },
+    });
   };
 
   useEffect(() => {
-    if (!id) return; // avoid undefined
+    if (!id) return;
     fetchPoll();
   }, [id]);
 
   if (!id) return <Text style={{ flex: 1, textAlign: "center" }}>Invalid poll ID</Text>;
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
-
   if (!poll) return <Text style={{ flex: 1, textAlign: "center" }}>Poll not found</Text>;
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>{poll.title}</Text>
       <Text style={styles.description}>{poll.description}</Text>
 
-      <FlatList
-        data={poll.categories}
-        keyExtractor={(cat) => cat.id.toString()}
-        renderItem={({ item: cat }) => (
-          <View style={styles.categoryBox}>
-            <Text style={styles.categoryTitle}>{cat.name}</Text>
-            {cat.nominees.map((nom: any) => (
+      {poll.categories.map((cat: any) => (
+        <View key={cat.id} style={styles.categoryBox}>
+          <Text style={styles.categoryTitle}>{cat.name}</Text>
+          {cat.nominees.map((nom: any) => {
+            const isSelected = selectedNominees[cat.id] === nom.id;
+            return (
               <TouchableOpacity
                 key={nom.id}
-                style={styles.nomineeBtn}
-                onPress={() => castVote(cat.id, nom.id)}
+                style={[styles.nomineeBtn, isSelected && styles.selectedNominee]}
+                onPress={() => selectNominee(cat.id, nom.id)}
               >
-                <Text style={styles.nomineeText}>{nom.name}</Text>
+                <Text style={[styles.nomineeText, isSelected && styles.selectedText]}>
+                  {nom.name}
+                </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      />
-    </View>
+            );
+          })}
+        </View>
+      ))}
+
+      <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitVote}>
+        <Text style={styles.submitText}>Submit Vote</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -93,4 +109,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   nomineeText: { color: "#fff", fontWeight: "600" },
+  selectedNominee: { backgroundColor: "#4CAF50" },
+  selectedText: { color: "#fff" },
+  submitBtn: {
+    backgroundColor: "#111",
+    padding: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitText: { color: "#fff", fontWeight: "600" },
 });

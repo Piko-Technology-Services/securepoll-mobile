@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image, Modal, TextInput
+  Image, Modal, TextInput, Alert
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import axios from "axios";
-import { getToken } from "../../src/lib/storage"; // your stored auth token
+import { getToken } from "../../src/lib/storage";
+import { Ionicons } from "@expo/vector-icons";
+
 
 export default function Home() {
   const router = useRouter();
@@ -22,38 +24,168 @@ export default function Home() {
 
 // Fetch polls from API
   const fetchPolls = async () => {
-    try {
-      const token = await getToken();
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/polls`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPolls(res.data); // assuming API returns array of polls
-    } catch (err) {
-      console.log(err);
-      alert("Error fetching polls");
-    } finally {
-      setLoading(false);
-    }
+      try {
+        const token = await getToken();
+        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/polls`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPolls(res.data); // assuming API returns array of polls
+      } catch (err) {
+        console.log(err);
+        alert("Error fetching polls");
+      } finally {
+        setLoading(false);
+      }
   };
 
     useEffect(() => {
     fetchPolls();
   }, []);
 
-const renderPoll = ({ item }: any) => (
-  <TouchableOpacity
-    style={styles.card}
-    onPress={() =>
-      router.push({
-        pathname: "/poll/[id]",
-        params: { id: item.id.toString() },
+  async function handleDeletePoll(id: string): Promise<void> {
+
+    const confirm = await new Promise<boolean>((resolve) => {
+      // Use React Native's Alert API for confirmation
+      // (Alert is a global import in React Native)
+      Alert.alert(
+          "Delete Poll",
+          "Are you sure you want to delete this poll?",
+          [
+            { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+            { text: "Delete", style: "destructive", onPress: () => resolve(true) },
+          ],
+          { cancelable: true }
+        );
+    });
+    if (!confirm) return;
+
+    const token = await getToken();
+    // Call API to delete poll
+    axios.delete(`${process.env.EXPO_PUBLIC_API_URL}/delete-poll/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(() => {
+      // Remove poll from state
+      setPolls((prev) => prev.filter((poll) => poll.id !== id));
+      alert("Poll deleted successfully");
+    })
+    .catch((err) => {
+      console.log(err);
+      alert("Error deleting poll");
+    });
+  }
+
+  async function handlePublishPoll(id: string): Promise<void> {
+
+    const confirm = await new Promise<boolean>((resolve) => {
+      // Use React Native's Alert API for confirmation
+      // (Alert is a global import in React Native)
+      Alert.alert(
+          "Publish Poll",
+          "Are you sure you want to publish this poll?",
+          [
+            { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+            { text: "Publish", style: "destructive", onPress: () => resolve(true) },
+          ],
+          { cancelable: true }
+        );
+    });
+    if (!confirm) return;
+
+    const token = await getToken();
+    // Call API to publish poll
+    axios.post(
+      `${process.env.EXPO_PUBLIC_API_URL}/publish-poll/${id}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      }
+    )
+      .then(() => {
+        alert("Poll published successfully");
       })
-    }
-  >
-    <Text style={styles.cardTitle}>{item.title}</Text>
-    <Text style={styles.cardMeta}>{item.votes || 0} votes</Text>
+      .catch((err) => {
+        console.log(err);
+        alert("Error publishing poll" + err.message);
+      });
+  }
+
+  const renderPoll = ({ item }: any) => {
+    
+    const formatDate = (date: string) => {
+      return new Date(date).toLocaleString();
+    };
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case "active":
+          return "#16a34a"; // green
+        case "closed":
+          return "#dc2626"; // red
+        default:
+          return "#f59e0b"; // draft = orange
+      }
+    };
+    
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          router.push({
+            pathname: "/poll/[id]",
+            params: { id: item.id.toString() },
+          })
+        }
+      >
+        {/* HEADER */}
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item.status) },
+            ]}
+          >
+            <Text style={styles.statusText}>{item.status}</Text>
+          </View>
+        </View>
+
+        {/* DESCRIPTION */}
+        <Text style={styles.cardDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+
+        {/* DATES */}
+        <View style={styles.dateRow}>
+          <Text style={styles.dateText}>
+            Start: {formatDate(item.datetime_start)}
+          </Text>
+          <Text style={styles.dateText}>
+            End: {formatDate(item.datetime_end)}
+          </Text>
+        </View>
+
+        {/* ACTIONS */}
+  <View style={styles.actionsRow}>
+
+  {/* Delete */}
+    <TouchableOpacity style={styles.iconBtn} onPress={() => handleDeletePoll(item.id)}>
+      <Ionicons name="trash-outline" size={18} color="#dc2626" />
+    </TouchableOpacity>
+
+    {/* Edit */}
+    <TouchableOpacity style={styles.iconBtn}>
+      <Ionicons name="create-outline" size={18} color="#333" />
+    </TouchableOpacity>
+
+    {/* Vote */}
     <TouchableOpacity
-      style={styles.voteBtn}
+      style={styles.iconBtn}
       onPress={() =>
         router.push({
           pathname: "/poll/[id]",
@@ -61,10 +193,27 @@ const renderPoll = ({ item }: any) => (
         })
       }
     >
-      <Text style={styles.voteText}>Vote</Text>
+      {/* <Text style={{color: '#fff'}}>Preview</Text> */}
+      <Ionicons name="eye-outline" size={18} color="#333" />
+
     </TouchableOpacity>
-  </TouchableOpacity>
-);
+
+
+    {/* Share */}
+    <TouchableOpacity style={styles.publishBtn} 
+        onPress={() => handlePublishPoll(item.id)}
+      >
+      <Text style={{color: '#fff'}}>Publish</Text>
+      <Ionicons name="share-social-outline" size={18} color="#fff" />
+    </TouchableOpacity>
+
+
+
+
+  </View>
+      </TouchableOpacity>
+    );
+  };
 
   
 
@@ -107,7 +256,7 @@ const renderPoll = ({ item }: any) => (
         ) : (
           <>
             {/* 📋 POLL LIST */}
-            <View style={styles.container}>
+            <View>
               <FlatList
                 data={polls}
                 keyExtractor={(item) => item.id.toString()}
@@ -188,6 +337,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     marginBottom: 20,
+    alignItems: "center", // ensure items are aligned in a row
   },
   searchInput: {
     flex: 1,
@@ -201,35 +351,117 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "center",
     borderRadius: 10,
+    height: 44, // match input height for row alignment
+    alignItems: "center",
   },
   filterText: {
     color: "#fff",
   },
 
-  // CARD
   card: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#fff",
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
+
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
   cardTitle: {
     fontSize: 16,
+    fontWeight: "700",
+    color: "#111",
+    flex: 1,
+    marginRight: 10,
+  },
+
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+
+  statusText: {
+    color: "#fff",
+    fontSize: 12,
     fontWeight: "600",
-    marginBottom: 6,
+    textTransform: "capitalize",
   },
-  cardMeta: {
-    color: "#666",
-    marginBottom: 10,
+
+  cardDescription: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#555",
   },
-  voteBtn: {
-    backgroundColor: "#111",
-    padding: 10,
+
+  dateRow: {
+    marginTop: 10,
+  },
+
+  dateText: {
+    fontSize: 12,
+    color: "#888",
+  },
+
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    marginTop: 15,
+  },
+
+  actionBtn: {
+    padding: 8,
     borderRadius: 8,
-    alignSelf: "flex-start",
+    backgroundColor: "#f5f5f5",
   },
+
+  actionText: {
+    fontSize: 16,
+  },
+
+iconBtn: {
+  width: 38,
+  height: 38,
+  borderRadius: 10,
+  backgroundColor: "#f5f5f5",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+voteBtn: {
+  backgroundColor: "#111",
+  paddingHorizontal: 16,
+  height: 38,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "row", // make Vote button content in a row
+  gap: 6,
+},
+
+publishBtn: {
+  backgroundColor: "#4CAF50",
+  paddingHorizontal: 16,
+  height: 38,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "row", // make Vote button content in a row
+  gap: 6,
+},
+
   voteText: {
     color: "#fff",
+    fontWeight: "600",
   },
 
   // MODAL

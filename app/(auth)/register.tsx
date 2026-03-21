@@ -8,6 +8,9 @@ import { register } from "../../src/api/auth";
 import { useRouter } from "expo-router";
 
 export default function Register() {
+
+  // alert(process.env.EXPO_PUBLIC_API_URL);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
