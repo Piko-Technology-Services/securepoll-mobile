@@ -13,6 +13,8 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import { getToken } from "../../src/lib/storage";
 import { Ionicons } from "@expo/vector-icons";
+// import { SafeAreaView } from "react-native-safe-area-context";
+
 
 
 export default function Home() {
@@ -183,12 +185,12 @@ export default function Home() {
       <Ionicons name="create-outline" size={18} color="#333" />
     </TouchableOpacity>
 
-    {/* Vote */}
+    {/* see results */}
     <TouchableOpacity
       style={styles.iconBtn}
       onPress={() =>
         router.push({
-          pathname: "/poll/[id]",
+          pathname: "/poll/[id]/results",
           params: { id: item.id.toString() },
         })
       }
@@ -218,6 +220,9 @@ export default function Home() {
   
 
   return (
+
+    // <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+
     <View style={styles.container}>
       {/* 🔷 HEADER */}
       <View style={styles.header}>
@@ -293,6 +298,10 @@ export default function Home() {
         </View>
       </Modal>
     </View>
+
+    //  </SafeAreaView>
+
+
   );
 }
 
@@ -347,7 +356,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   filterBtn: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     paddingHorizontal: 16,
     justifyContent: "center",
     borderRadius: 10,
@@ -438,7 +447,7 @@ iconBtn: {
 },
 
 voteBtn: {
-  backgroundColor: "#111",
+  backgroundColor: "#4281A6",
   paddingHorizontal: 16,
   height: 38,
   borderRadius: 10,
@@ -484,7 +493,7 @@ publishBtn: {
   },
   logoutBtn: {
     marginTop: 20,
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -494,7 +503,7 @@ publishBtn: {
   position: "absolute",
   bottom: 20,
   right: 20,
-  backgroundColor: "#111",
+  backgroundColor: "#4281A6",
   width: 60,
   height: 60,
   borderRadius: 30,

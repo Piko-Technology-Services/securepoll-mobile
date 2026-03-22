@@ -14,6 +14,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import axios from "axios";
 import { getToken } from "../../../src/lib/storage";
 
+
 export default function VoteVerifyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -164,7 +165,7 @@ const handleBiometric = async () => {
       const token = await getToken();
 
       await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/polls/${pollId}/vote`,
+        `${process.env.EXPO_PUBLIC_API_URL}/polls/${pollId}/vcast-vote`,
         {
           selections,
           verification: {
@@ -177,7 +178,7 @@ const handleBiometric = async () => {
       );
 
       Alert.alert("Vote cast successfully!");
-      router.replace("/"); // Navigate back to dashboard
+      router.replace(`/poll/${pollId}/results`); // Navigate to results
     } catch (err) {
       console.log(err);
       Alert.alert("Error submitting vote");
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
   },
   verifyBtn: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sendBtn: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,

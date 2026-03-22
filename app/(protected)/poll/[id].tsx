@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   categoryBox: { marginBottom: 20 },
   categoryTitle: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
   nomineeBtn: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     padding: 12,
     borderRadius: 8,
     marginBottom: 5,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   selectedNominee: { backgroundColor: "#4CAF50" },
   selectedText: { color: "#fff" },
   submitBtn: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     padding: 16,
     borderRadius: 10,
     alignItems: "center",

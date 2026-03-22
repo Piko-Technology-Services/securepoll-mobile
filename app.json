@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "securepoll-mobile",
-    "slug": "securepoll-mobile",
+    "name": "Secure Poll (3FA)",
+    "slug": "Secure Poll (3FA)",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/react-logo.png",

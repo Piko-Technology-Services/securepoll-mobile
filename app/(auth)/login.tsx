@@ -42,10 +42,10 @@ export default function Login() {
           keyboardShouldPersistTaps="handled"
         >
           <Image
-        source={require("../../assets/images/react-logo.png")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+            source={require("../../assets/images/react-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
 
       {/* Title */}
       <Text style={styles.title}>Welcome Back</Text>
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#111",
+    backgroundColor: "#4281A6",
     padding: 16,
     borderRadius: 10,
     alignItems: "center",
