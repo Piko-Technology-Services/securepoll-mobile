@@ -44,6 +44,9 @@ export default function PollScreen() {
   };
 
   const handleSubmitVote = () => {
+
+    console.log('Selected Nominees', selectedNominees);
+
     // Navigate to verification screen
     router.push({
       pathname: "/vote/verify",

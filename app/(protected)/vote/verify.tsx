@@ -6,9 +6,10 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as LocalAuthentication from "expo-local-authentication";
 import axios from "axios";
 import { getToken } from "../../../src/lib/storage";
@@ -20,41 +21,140 @@ export default function VoteVerifyScreen() {
   const selections = JSON.parse((params.selections as string) || "{}");
 
   const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [otpVerified, setOtpVerified] = useState(false);
   const [bioVerified, setBioVerified] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordVerified, setPasswordVerified] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const canSubmit = otpVerified && bioVerified && passwordVerified;
 
-  const handleOtpVerify = () => {
-    // Here you should call your API to verify OTP
-    if (otp.length === 6) {
-      setOtpVerified(true);
-      Alert.alert("OTP verified!");
-    } else {
-      Alert.alert("Invalid OTP");
+
+  const sendOtp = async () => {
+      setLoadingOtp(true);
+    try {
+      const token = await getToken();
+
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/polls/send-otp`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setOtpSent(true);
+      setLoadingOtp(false);
+      setCountdown(120); // 60 sec cooldown
+    } catch (err) {
+      console.log(err);
+      setLoadingOtp(false);
+      alert("Error sending OTP");
     }
   };
 
-  const handleBiometric = async () => {
+  const maskEmail = (email: string) => {
+  return email.replace(/(.{3}).+(.{2}@.+)/, "$1***$2");
+};
+
+
+  const handleOtpVerify = async () => {
+
+    if(otpVerified){
+      alert("OTP Already Verified!");
+    }else{
+
+        try {
+          const token = await getToken();
+
+          await axios.post(
+            `${process.env.EXPO_PUBLIC_API_URL}/polls/verify-otp`,
+            { otp },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          setOtpVerified(true);
+          alert("OTP verified!");
+        } catch (err) {
+          alert("Invalid OTP");
+        }
+
+    }
+
+
+  };
+
+const handleBiometric = async () => {
+  try {
+    // 🔍 Check hardware
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    if (!hasHardware) {
+      Alert.alert("Error", "No biometric hardware found on this device");
+      return;
+    }
+
+    // 🔍 Check enrolled biometrics
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!isEnrolled) {
+      Alert.alert("Error", "No biometrics enrolled (add fingerprint/Face ID)");
+      return;
+    }
+
+    // 🔍 Get supported types
+    const supportedTypes =
+      await LocalAuthentication.supportedAuthenticationTypesAsync();
+
+    let type = "Biometric";
+    if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      type = "Fingerprint";
+    } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      type = "Face ID";
+    }
+
+    // 🔐 Authenticate
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Verify your identity",
+      promptMessage: `Verify with ${type}`,
+      fallbackLabel: "Use Passcode",
+      cancelLabel: "Cancel",
+      disableDeviceFallback: false,
     });
+
     if (result.success) {
       setBioVerified(true);
-      Alert.alert("Biometric verified!");
-    }
-  };
-
-  const handlePasswordVerify = () => {
-    // Here you should call your API to verify password
-    if (password.length > 0) {
-      setPasswordVerified(true);
-      Alert.alert("Password verified!");
+      Alert.alert("Success", `${type} verified!`);
     } else {
-      Alert.alert("Invalid password");
+      Alert.alert("Failed", "Biometric authentication failed");
+    }
+
+  } catch (error) {
+    console.log(error);
+    Alert.alert("Error", "Biometric authentication error");
+  }
+};
+
+  const handlePasswordVerify = async () => {
+    try {
+      setPasswordLoading(true);
+
+      const token = await getToken();
+
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/polls/verify-password`,
+        { password },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setPasswordVerified(true);
+      alert("Password verified!");
+    } catch (err: any) {
+      console.log(err?.response || err);
+      alert("Incorrect password");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -86,48 +186,131 @@ export default function VoteVerifyScreen() {
     }
   };
 
+  useEffect(() => {
+    if (countdown <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown]);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.header}>Complete Vote Verification</Text>
 
       {/* OTP Card */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>OTP (Email)</Text>
-        <TextInput
-          placeholder="Enter OTP"
-          style={styles.input}
-          value={otp}
-          onChangeText={setOtp}
-        />
-        <TouchableOpacity style={styles.verifyBtn} onPress={handleOtpVerify}>
-          <Text style={styles.verifyText}>{otpVerified ? "Verified" : "Verify OTP"}</Text>
-        </TouchableOpacity>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>One Time Passcode - OTP</Text>
+
+  
+
+          {!otpVerified && (
+            <TouchableOpacity
+              onPress={sendOtp}
+              disabled={countdown > 0}
+              style={[styles.sendBtn, countdown > 0 && { opacity: 0.5 }]}
+            >
+              <Text style={styles.sendText}>
+                {loadingOtp ? <ActivityIndicator size="small" color="#fff" /> : (countdown > 0 ? `Resend (${countdown}s)` : "Send OTP")}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Hint */}
+        {otpSent && !otpVerified && (
+            <Text style={styles.hint}>
+              OTP sent to ****@***.**
+              {/* OTP sent to {maskEmail(params.email as string)} */}
+            </Text>
+        )}
+
+        {/* Input appears AFTER sending */}
+        {otpSent && (
+          <>
+
+          {!otpVerified && (
+            <TextInput
+              placeholder="Enter OTP"
+              style={styles.input}
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="numeric"
+            />
+          )}
+
+            
+      {otpVerified ? ( 
+            <TouchableOpacity style={[styles.verifyBtn, otpVerified && { backgroundColor: "#16a34a" }]} onPress={handleOtpVerify}>
+              <Text style={styles.verifyText}>
+                 Verified ✅
+              </Text>
+            </TouchableOpacity>
+      ) : (
+            <TouchableOpacity style={styles.verifyBtn} onPress={handleOtpVerify}>
+              <Text style={styles.verifyText}>
+                Verify OTP
+              </Text>
+            </TouchableOpacity>
+      )}
+          </>
+        )}
       </View>
+
+
+            {/* Password Card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>This App Account Password</Text>
+
+            {!passwordVerified && (
+              <TextInput
+                placeholder="Enter Password"
+                secureTextEntry
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+              />
+            )}
+            <TouchableOpacity
+              style={[
+                styles.verifyBtn,
+                passwordVerified && { backgroundColor: "#16a34a" },
+              ]}
+              onPress={handlePasswordVerify}
+              disabled={passwordVerified || passwordLoading}
+            >
+              <Text style={styles.verifyText}>
+                {passwordLoading
+                  ? "Verifying..."
+                  : passwordVerified
+                  ? "Verified ✅"
+                  : "Verify Password"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
 
       {/* Biometric Card */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Biometric</Text>
-        <TouchableOpacity style={styles.verifyBtn} onPress={handleBiometric}>
-          <Text style={styles.verifyText}>{bioVerified ? "Verified" : "Verify Biometric"}</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Password Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>This App Account Password</Text>
-        <TextInput
-          placeholder="Enter Password"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity style={styles.verifyBtn} onPress={handlePasswordVerify}>
+        <TouchableOpacity
+          style={[
+            styles.verifyBtn,
+            bioVerified && { backgroundColor: "#16a34a" },
+          ]}
+          onPress={handleBiometric}
+          disabled={bioVerified}
+        >
           <Text style={styles.verifyText}>
-            {passwordVerified ? "Verified" : "Verify Password"}
+            {bioVerified ? "Verified ✅" : "Verify Biometric"}
           </Text>
         </TouchableOpacity>
       </View>
+
 
       {canSubmit && (
         <TouchableOpacity style={styles.submitBtn} onPress={submitVote}>
@@ -171,4 +354,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   submitText: { color: "#fff", fontWeight: "700" },
+
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  sendBtn: {
+    backgroundColor: "#111",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  sendText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  hint: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 10,
+  },
 });
