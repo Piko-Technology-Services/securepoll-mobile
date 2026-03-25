@@ -13,6 +13,8 @@ import axios from "axios";
 import { getToken } from "../../src/lib/storage"; // function to get stored auth token
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function CreatePoll() {
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function CreatePoll() {
   const [datetimeEnd, setDatetimeEnd] = useState<Date>(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [startMode, setStartMode] = useState<"date" | "time">("date");
+const [endMode, setEndMode] = useState<"date" | "time">("date");
   const [categories, setCategories] = useState([
     { name: "", description: "", nominees: [""] },
   ]);
@@ -123,136 +127,193 @@ export default function CreatePoll() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Create Poll</Text>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+     <KeyboardAwareScrollView
+                       contentContainerStyle={styles.container}
+                       keyboardShouldPersistTaps="handled"
+                       showsVerticalScrollIndicator={false}
+                       enableOnAndroid={true}
+                     >
+        <Text style={styles.title}>Create Poll</Text>
 
-      <TextInput
-        placeholder="Poll Title"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-      />
-      <TextInput
-        placeholder="Description"
-        placeholderTextColor="#999"
-        style={styles.input}
-        value={description}
-        onChangeText={setDescription}
-      />
-      {/* Start DateTime */}
-<TouchableOpacity
-  style={styles.input}
-  onPress={() => setShowStartPicker(true)}
->
-  <Text>
-    Poll Start -
-    {datetimeStart
-      ? ` ` + datetimeStart.toLocaleString()
-      : "Select Poll Start Date & Time"}
-  </Text>
-</TouchableOpacity>
+        <TextInput
+          placeholder="Poll Title"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+        />
+        <TextInput
+          placeholder="Description"
+          placeholderTextColor="#999"
+          style={styles.input}
+          value={description}
+          onChangeText={setDescription}
+        />
+        {/* Start DateTime */}
+  <TouchableOpacity
+    style={styles.input}
+    onPress={() => setShowStartPicker(true)}
+  >
+    <Text>
+      Poll Start -
+      {datetimeStart
+        ? ` ` + datetimeStart.toLocaleString()
+        : "Select Poll Start Date & Time"}
+    </Text>
+  </TouchableOpacity>
 
-{showStartPicker && (
-  <View style={styles.pickerContainer}>
-    <DateTimePicker
-      value={ datetimeStart || new Date()}
-      mode="datetime"
-      display="spinner"
-      themeVariant="light"
-      onChange={(event, selectedDate) => {
+  {showStartPicker && (
+    <View style={styles.pickerContainer}>
+      <DateTimePicker
+    value={datetimeStart}
+    mode={Platform.OS === "android" ? startMode : "datetime"}
+    display={Platform.OS === "ios" ? "spinner" : "default"}
+    onChange={(event, selectedDate) => {
+      if (Platform.OS === "android") {
+        if (event.type === "dismissed") {
+          setShowStartPicker(false);
+          return;
+        }
+
+        if (startMode === "date") {
+          // Step 1: pick date → move to time
+          const newDate = selectedDate || datetimeStart;
+          setDatetimeStart(newDate);
+          setStartMode("time");
+        } else {
+          // Step 2: pick time → finish
+          const newDate = selectedDate || datetimeStart;
+
+          // merge time into existing date
+          const updated = new Date(datetimeStart);
+          updated.setHours(newDate.getHours());
+          updated.setMinutes(newDate.getMinutes());
+
+          setDatetimeStart(updated);
+
+          setShowStartPicker(false);
+          setStartMode("date"); // reset
+        }
+      } else {
+        // iOS behavior
         if (selectedDate) setDatetimeStart(selectedDate);
-      }}
-    />
+      }
+    }}
+  />
 
-    {/* ✅ ACTION BUTTONS */}
-    <View style={styles.pickerActions}>
-      <TouchableOpacity onPress={() => setShowStartPicker(false)}>
-        <Text style={styles.cancel}>Cancel</Text>
-      </TouchableOpacity>
+      {/* ✅ ACTION BUTTONS */}
+      <View style={styles.pickerActions}>
+        <TouchableOpacity onPress={() => setShowStartPicker(false)}>
+          <Text style={styles.cancel}>Cancel</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => setShowStartPicker(false)}>
-        <Text style={styles.done}>Done</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowStartPicker(false)}>
+          <Text style={styles.done}>Done</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-)}
+  )}
 
-    {/* End DateTime */}
-<TouchableOpacity
-  style={styles.input}
-  onPress={() => setShowStartPicker(true)}
->
-  <Text>
-    Poll End -  
-    {datetimeEnd
-      ? ` ` + datetimeEnd.toLocaleString()
-      : "Select Poll End Date & Time"}
-  </Text>
-</TouchableOpacity>
+      {/* End DateTime */}
+  <TouchableOpacity
+    style={styles.input}
+    onPress={() => setShowEndPicker(true)}
+  >
+    <Text>
+      Poll End -  
+      {datetimeEnd
+        ? ` ` + datetimeEnd.toLocaleString()
+        : "Select Poll End Date & Time"}
+    </Text>
+  </TouchableOpacity>
 
-{showEndPicker && (
-  <View style={styles.pickerContainer}>
-    <DateTimePicker
-      value={datetimeEnd || new Date()}
-      mode="datetime"
-      display="spinner"
-      themeVariant="light"
-      onChange={(event, selectedDate) => {
+  {showEndPicker && (
+    <View style={styles.pickerContainer}>
+      <DateTimePicker
+    value={datetimeEnd}
+    mode={Platform.OS === "android" ? endMode : "datetime"}
+    display={Platform.OS === "ios" ? "spinner" : "default"}
+    onChange={(event, selectedDate) => {
+      if (Platform.OS === "android") {
+        if (event.type === "dismissed") {
+          setShowEndPicker(false);
+          return;
+        }
+
+        if (endMode === "date") {
+          const newDate = selectedDate || datetimeEnd;
+          setDatetimeEnd(newDate);
+          setEndMode("time");
+        } else {
+          const newDate = selectedDate || datetimeEnd;
+
+          const updated = new Date(datetimeEnd);
+          updated.setHours(newDate.getHours());
+          updated.setMinutes(newDate.getMinutes());
+
+          setDatetimeEnd(updated);
+
+          setShowEndPicker(false);
+          setEndMode("date");
+        }
+      } else {
         if (selectedDate) setDatetimeEnd(selectedDate);
-      }}
-    />
+      }
+    }}
+  />
 
-    <View style={styles.pickerActions}>
-      <TouchableOpacity onPress={() => setShowEndPicker(false)}>
-        <Text style={styles.cancel}>Cancel</Text>
-      </TouchableOpacity>
+      <View style={styles.pickerActions}>
+        <TouchableOpacity onPress={() => setShowEndPicker(false)}>
+          <Text style={styles.cancel}>Cancel</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => setShowEndPicker(false)}>
-        <Text style={styles.done}>Done</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowEndPicker(false)}>
+          <Text style={styles.done}>Done</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-)}
+  )}
 
-      {categories.map((cat, catIndex) => (
-        <View key={catIndex} style={styles.categoryBox}>
-          <TextInput
-            placeholder={`Category ${catIndex + 1} Name`}
-            style={styles.input}
-            value={cat.name}
-            onChangeText={text => handleCategoryChange(catIndex, text)}
-          />
-
-           <TextInput
-            placeholder={`Category ${catIndex + 1} Description`}
-            style={styles.input}
-            value={cat.description}
-            onChangeText={text => handleCategoryDescriptionChange(catIndex, text)}
-          />
-          {cat.nominees.map((nom, nomIndex) => (
+        {categories.map((cat, catIndex) => (
+          <View key={catIndex} style={styles.categoryBox}>
             <TextInput
-              key={nomIndex}
-              placeholder={`Nominee ${nomIndex + 1}`}
+              placeholder={`Category ${catIndex + 1} Name`}
               style={styles.input}
-              value={nom}
-              onChangeText={text => handleNomineeChange(catIndex, nomIndex, text)}
+              value={cat.name}
+              onChangeText={text => handleCategoryChange(catIndex, text)}
             />
-          ))}
-          <TouchableOpacity onPress={() => addNominee(catIndex)} style={styles.addBtn}>
-            <Text style={styles.addBtnText}>+ Add Nominee</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
 
-      <TouchableOpacity onPress={addCategory} style={styles.addBtn}>
-        <Text style={styles.addBtnText}>+ Add Category</Text>
-      </TouchableOpacity>
+            <TextInput
+              placeholder={`Category ${catIndex + 1} Description`}
+              style={styles.input}
+              value={cat.description}
+              onChangeText={text => handleCategoryDescriptionChange(catIndex, text)}
+            />
+            {cat.nominees.map((nom, nomIndex) => (
+              <TextInput
+                key={nomIndex}
+                placeholder={`Nominee ${nomIndex + 1}`}
+                style={styles.input}
+                value={nom}
+                onChangeText={text => handleNomineeChange(catIndex, nomIndex, text)}
+              />
+            ))}
+            <TouchableOpacity onPress={() => addNominee(catIndex)} style={styles.addBtn}>
+              <Text style={styles.addBtnText}>+ Add Nominee</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Create Poll</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity onPress={addCategory} style={styles.addBtn}>
+          <Text style={styles.addBtnText}>+ Add Category</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>Create Poll</Text>
+        </TouchableOpacity>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 

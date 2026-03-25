@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  ScrollView,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -13,6 +12,8 @@ import { useState, useEffect } from "react";
 import * as LocalAuthentication from "expo-local-authentication";
 import axios from "axios";
 import { getToken } from "../../../src/lib/storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 
 export default function VoteVerifyScreen() {
@@ -198,7 +199,16 @@ const handleBiometric = async () => {
   }, [countdown]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+        <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+
+    <KeyboardAwareScrollView
+                      contentContainerStyle={styles.container}
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                      enableOnAndroid={true}
+                    >
+      
+      
       <Text style={styles.header}>Complete Vote Verification</Text>
 
       {/* OTP Card */}
@@ -318,7 +328,9 @@ const handleBiometric = async () => {
           <Text style={styles.submitText}>{loading ? "Submitting..." : "Complete Vote"}</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+    </KeyboardAwareScrollView>
+    </SafeAreaView>
+
   );
 }
 

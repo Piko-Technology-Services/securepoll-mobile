@@ -10,24 +10,31 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,  Keyboard
+  TouchableWithoutFeedback,  Keyboard,
+  ActivityIndicator
 } from "react-native";
 import { login } from "../../src/api/auth";
 import { setToken } from "../../src/lib/storage";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
 
 export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       const res = await login({ email, password });
       await setToken(res.data.token);
       router.replace("/");
     } catch {
-      alert("Login failed");
+      alert("Login failed, Something Went Wrong, Try Again");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,9 +44,11 @@ export default function Login() {
       style={{ flex: 1 }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
+        <KeyboardAwareScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
         >
           <Image
             source={require("../../assets/images/react-logo.png")}
@@ -56,6 +65,8 @@ export default function Login() {
         placeholderTextColor="#999"
         style={styles.input}
         onChangeText={setEmail}
+        cursorColor="#111"     
+        selectionColor="#111"    
       />
 
       <TextInput
@@ -64,18 +75,24 @@ export default function Login() {
         secureTextEntry
         style={styles.input}
         onChangeText={setPassword}
+        cursorColor="#111"     
+        selectionColor="#111" 
       />
 
       {/* Button */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+        {!loading ? (
+          <Text style={styles.buttonText}>Login</Text>
+        ) : (
+          <ActivityIndicator color="#fff" />
+        )}
       </TouchableOpacity>
 
       {/* Link */}
       <TouchableOpacity onPress={() => router.push("/register")}>
         <Text style={styles.link}>Create an account</Text>
       </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         </TouchableWithoutFeedback>
       {/* Logo */}
       
@@ -109,6 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     fontSize: 16,
+    color: "#111",
   },
   button: {
     backgroundColor: "#4281A6",

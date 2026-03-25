@@ -5,12 +5,14 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { getToken } from "../../../src/lib/storage";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 export default function PollScreen() {
   const router = useRouter();
@@ -67,34 +69,43 @@ export default function PollScreen() {
   if (!poll) return <Text style={{ flex: 1, textAlign: "center" }}>Poll not found</Text>;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>{poll.title}</Text>
-      <Text style={styles.description}>{poll.description}</Text>
+        <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
 
-      {poll.categories.map((cat: any) => (
-        <View key={cat.id} style={styles.categoryBox}>
-          <Text style={styles.categoryTitle}>{cat.name}</Text>
-          {cat.nominees.map((nom: any) => {
-            const isSelected = selectedNominees[cat.id] === nom.id;
-            return (
-              <TouchableOpacity
-                key={nom.id}
-                style={[styles.nomineeBtn, isSelected && styles.selectedNominee]}
-                onPress={() => selectNominee(cat.id, nom.id)}
-              >
-                <Text style={[styles.nomineeText, isSelected && styles.selectedText]}>
-                  {nom.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ))}
+          <KeyboardAwareScrollView
+                                contentContainerStyle={styles.container}
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator={false}
+                                enableOnAndroid={true}
+                              >
+            <Text style={styles.title}>{poll.title}</Text>
+            <Text style={styles.description}>{poll.description}</Text>
 
-      <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitVote}>
-        <Text style={styles.submitText}>Submit Vote</Text>
-      </TouchableOpacity>
-    </ScrollView>
+            {poll.categories.map((cat: any) => (
+              <View key={cat.id} style={styles.categoryBox}>
+                <Text style={styles.categoryTitle}>{cat.name}</Text>
+                {cat.nominees.map((nom: any) => {
+                  const isSelected = selectedNominees[cat.id] === nom.id;
+                  return (
+                    <TouchableOpacity
+                      key={nom.id}
+                      style={[styles.nomineeBtn, isSelected && styles.selectedNominee]}
+                      onPress={() => selectNominee(cat.id, nom.id)}
+                    >
+                      <Text style={[styles.nomineeText, isSelected && styles.selectedText]}>
+                        {nom.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitVote}>
+              <Text style={styles.submitText}>Submit Vote</Text>
+            </TouchableOpacity>
+          </KeyboardAwareScrollView>
+        </SafeAreaView>
+
   );
 }
 

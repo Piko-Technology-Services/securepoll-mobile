@@ -1,11 +1,13 @@
 // /app/(auth)/register.tsx
 import {
   KeyboardAvoidingView, ScrollView,
-  TouchableWithoutFeedback, TextInput, Text, TouchableOpacity, Image, StyleSheet, Keyboard, Platform
+  TouchableWithoutFeedback, TextInput, Text, TouchableOpacity, Image, StyleSheet, Keyboard, Platform,
+  ActivityIndicator
 } from "react-native";
 import { useState } from "react";
 import { register } from "../../src/api/auth";
 import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function Register() {
 
@@ -14,11 +16,12 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleRegister = async () => {
     // console.log({ name, email, password });
-
+    setLoading(true);
     try {
       await register({
         name,
@@ -30,17 +33,21 @@ export default function Register() {
       alert("Registered!");
       router.replace("/login");
     } catch {
-      alert("Error");
+      alert("Register Failed, Something Went Wrong, Try Again");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <KeyboardAvoidingView style={{flex: 1}}  behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} >
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
+        <KeyboardAwareScrollView
+                  contentContainerStyle={styles.container}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  enableOnAndroid={true}
+                >
           <Image
             source={require("../../assets/images/react-logo.png")}
             style={styles.logo}
@@ -60,13 +67,18 @@ export default function Register() {
           />
 
           <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Register</Text>
+            
+             {!loading ? (
+                <Text style={styles.buttonText}>Register</Text>
+              ) : (
+                <ActivityIndicator color="#fff" />
+              )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push("/login")}>
             <Text style={styles.link}>Already have an account?</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </TouchableWithoutFeedback>
 
     </KeyboardAvoidingView>

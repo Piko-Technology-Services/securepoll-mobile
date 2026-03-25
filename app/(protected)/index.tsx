@@ -13,8 +13,8 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import { getToken } from "../../src/lib/storage";
 import { Ionicons } from "@expo/vector-icons";
-// import { SafeAreaView } from "react-native-safe-area-context";
-
+import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 export default function Home() {
@@ -23,6 +23,30 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  const fetchUser = async () => {
+  try {
+    const token = await getToken();
+
+    const res = await axios.get(
+      `${process.env.EXPO_PUBLIC_API_URL}/me`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    setUser(res.data);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const handleLogout = async () => {
+  await AsyncStorage.removeItem("token");
+  router.replace("/login");
+};
+  
 
 // Fetch polls from API
   const fetchPolls = async () => {
@@ -34,15 +58,24 @@ export default function Home() {
         setPolls(res.data); // assuming API returns array of polls
       } catch (err) {
         console.log(err);
-        alert("Error fetching polls");
+        // alert("Error fetching polls (Index)");
       } finally {
         setLoading(false);
       }
   };
 
-    useEffect(() => {
+useEffect(() => {
+  const load = async () => {
+    const token = await getToken();
+
+    if (!token) return;
+
     fetchPolls();
-  }, []);
+    fetchUser();
+  };
+
+  load();
+}, []);
 
   async function handleDeletePoll(id: string): Promise<void> {
 
@@ -221,85 +254,100 @@ export default function Home() {
 
   return (
 
-    // <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
 
-    <View style={styles.container}>
-      {/* 🔷 HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image
-            source={require("../../assets/images/react-logo.png")}
-            style={styles.logo}
-          />
-          <Text style={styles.appName}>SecurePoll</Text>
-        </View>
-
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <View style={styles.profileIcon}>
-            <Text style={{ color: "#fff" }}>U</Text>
+      <View style={styles.container}>
+        {/* 🔷 HEADER */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Image
+              source={require("../../assets/images/react-logo.png")}
+              style={styles.logo}
+            />
+            <Text style={styles.appName}>SecurePoll</Text>
           </View>
-        </TouchableOpacity>
-      </View>
 
-      {/* 🔍 SEARCH + FILTER */}
-      <View style={styles.searchRow}>
-        <TextInput
-          placeholder="Search polls..."
-          placeholderTextColor="#999"
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchInput}
-        />
-
-        <TouchableOpacity style={styles.filterBtn}>
-          <Text style={styles.filterText}>Filter</Text>
-        </TouchableOpacity>
-      </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" style={{ flex: 1 }} />
-        ) : (
-          <>
-            {/* 📋 POLL LIST */}
-            <View>
-              <FlatList
-                data={polls}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderPoll}
-                contentContainerStyle={{ paddingBottom: 100 }}
-              />
+          <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <View style={styles.profileIcon}>
+              <Text style={{ color: "#fff" }}>
+                {user?.name
+                  ? user.name
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase()
+                  : "?"}
+              </Text>
             </View>
-          </>
-        )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push("/create-poll")}
-      >
-        <Text style={styles.fabText}>＋</Text>
-      </TouchableOpacity>
-
-      {/* 👤 PROFILE MODAL */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>User Profile</Text>
-
-            <Text>Name: User Name</Text>
-            <Text>Email: john@test.com</Text>
-
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={{ color: "#fff" }}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </View>
 
-    //  </SafeAreaView>
+        {/* 🔍 SEARCH + FILTER */}
+        <View style={styles.searchRow}>
+          <TextInput
+            placeholder="Search polls..."
+            placeholderTextColor="#999"
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+          />
+
+          <TouchableOpacity style={styles.filterBtn}>
+            <Text style={styles.filterText}>Filter</Text>
+          </TouchableOpacity>
+        </View>
+
+          {loading ? (
+            <ActivityIndicator size="large" style={{ flex: 1 }} />
+          ) : (
+            <>
+              {/* 📋 POLL LIST */}
+              <View>
+                <FlatList
+                  data={polls}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderPoll}
+                  contentContainerStyle={{ paddingBottom: 100 }}
+                />
+              </View>
+            </>
+          )}
+
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push("/create-poll")}
+        >
+          <Text style={styles.fabText}>＋</Text>
+        </TouchableOpacity>
+
+        {/* 👤 PROFILE MODAL */}
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalTitle}>User Profile</Text>
+
+              <Text>Name: {user?.name || "Loading..."}</Text>
+              <Text>Email: {user?.email || "Loading..."}</Text>
+
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={handleLogout}
+              >
+                <Text style={{ color: "#fff" }}>Logout</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.logoutBtn, { backgroundColor: "#999", marginTop: 10 }]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={{ color: "#fff" }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
+
+    </SafeAreaView>
 
 
   );

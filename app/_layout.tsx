@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import useAuth from "../src/hooks/useAuth";
-// import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function Layout() {
   const { userToken, loading } = useAuth();
@@ -20,8 +20,8 @@ export default function Layout() {
   }, [userToken, loading]);
 
    return (
-    // <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: true }} />
-  // </SafeAreaProvider> 
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+  </SafeAreaProvider> 
    );
 }
