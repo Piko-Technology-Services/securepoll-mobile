@@ -166,7 +166,7 @@ const handleBiometric = async () => {
       const token = await getToken();
 
       await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/polls/${pollId}/vcast-vote`,
+        `${process.env.EXPO_PUBLIC_API_URL}/polls/${pollId}/cast-vote`,
         {
           selections,
           verification: {
@@ -202,11 +202,11 @@ const handleBiometric = async () => {
         <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
 
     <KeyboardAwareScrollView
-                      contentContainerStyle={styles.container}
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={false}
-                      enableOnAndroid={true}
-                    >
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      enableOnAndroid={true}
+    >
       
       
       <Text style={styles.header}>Complete Vote Verification</Text>

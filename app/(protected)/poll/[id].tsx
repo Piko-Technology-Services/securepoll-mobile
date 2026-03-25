@@ -12,6 +12,7 @@ import axios from "axios";
 import { getToken } from "../../../src/lib/storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
 
 export default function PollScreen() {
@@ -70,7 +71,7 @@ export default function PollScreen() {
 
   return (
         <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
-
+          <StatusBar style="dark" />
           <KeyboardAwareScrollView
                                 contentContainerStyle={styles.container}
                                 keyboardShouldPersistTaps="handled"

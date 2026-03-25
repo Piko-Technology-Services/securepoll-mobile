@@ -9,6 +9,8 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { getToken } from "../../../../src/lib/storage";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PollResults() {
   const { id } = useLocalSearchParams();
@@ -18,7 +20,6 @@ export default function PollResults() {
   const fetchResults = async () => {
     try {
       const token = await getToken();
-
       const res = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/polls/${id}/results`,
         {
@@ -45,6 +46,9 @@ export default function PollResults() {
   if (!poll) return <Text style={{ textAlign: "center" }}>No data</Text>;
 
   return (
+<SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+      <StatusBar style="dark" />
+
     <View style={styles.container}>
       {/* POLL HEADER */}
       <Text style={styles.title}>{poll.title}</Text>
@@ -98,6 +102,8 @@ export default function PollResults() {
         }}
       />
     </View>
+</SafeAreaView>
+
   );
 }
 

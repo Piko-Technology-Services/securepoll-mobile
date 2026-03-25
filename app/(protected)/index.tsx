@@ -15,7 +15,7 @@ import { getToken } from "../../src/lib/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { StatusBar } from "expo-status-bar";
 
 export default function Home() {
   const router = useRouter();
@@ -24,6 +24,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchUser = async () => {
   try {
@@ -62,6 +63,14 @@ const handleLogout = async () => {
       } finally {
         setLoading(false);
       }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setLoading(true);
+    await fetchPolls(); // reuse your existing API call
+    setRefreshing(false);
+    setLoading(false);
   };
 
 useEffect(() => {
@@ -214,13 +223,13 @@ useEffect(() => {
     </TouchableOpacity>
 
     {/* Edit */}
-    <TouchableOpacity style={styles.iconBtn}>
+    {/* <TouchableOpacity style={styles.iconBtn}>
       <Ionicons name="create-outline" size={18} color="#333" />
-    </TouchableOpacity>
+    </TouchableOpacity> */}
 
     {/* see results */}
     <TouchableOpacity
-      style={styles.iconBtn}
+      style={[styles.voteBtn, { backgroundColor: "#f5f5f5" }]}
       onPress={() =>
         router.push({
           pathname: "/poll/[id]/results",
@@ -228,7 +237,7 @@ useEffect(() => {
         })
       }
     >
-      {/* <Text style={{color: '#fff'}}>Preview</Text> */}
+      <Text style={{color: '#333'}}>Results</Text>
       <Ionicons name="eye-outline" size={18} color="#333" />
 
     </TouchableOpacity>
@@ -255,7 +264,7 @@ useEffect(() => {
   return (
 
     <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
-
+      <StatusBar style="dark" />
       <View style={styles.container}>
         {/* 🔷 HEADER */}
         <View style={styles.header}>
@@ -308,6 +317,8 @@ useEffect(() => {
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={renderPoll}
                   contentContainerStyle={{ paddingBottom: 100 }}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
                 />
               </View>
             </>

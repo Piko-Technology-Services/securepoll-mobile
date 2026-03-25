@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
   ScrollView,
 } from "react-native";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 export default function CreatePoll() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -26,7 +28,7 @@ export default function CreatePoll() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [startMode, setStartMode] = useState<"date" | "time">("date");
-const [endMode, setEndMode] = useState<"date" | "time">("date");
+  const [endMode, setEndMode] = useState<"date" | "time">("date");
   const [categories, setCategories] = useState([
     { name: "", description: "", nominees: [""] },
   ]);
@@ -84,6 +86,8 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
 
   const handleSubmit = async () => {
 
+    setLoading(true);
+
     console.log({ title, description, datetimeStart, datetimeEnd, categories, votingMethod });
 
     // if (!title || categories.some(cat => !cat.name || cat.nominees.some(n => !n))) {
@@ -119,10 +123,14 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
       );
 
       alert("Poll created successfully!");
-      router.back();
+      setLoading(false);
+      router.replace('/');
     } catch (err: any) {
       console.log(err.response?.data || err.message);
       alert("Error creating poll");
+      setLoading(false);
+    }finally {
+      setLoading(false);
     }
   };
 
@@ -134,6 +142,12 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
                        showsVerticalScrollIndicator={false}
                        enableOnAndroid={true}
                      >
+        <ScrollView 
+          contentContainerStyle={{ paddingBottom: 50 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+         
         <Text style={styles.title}>Create Poll</Text>
 
         <TextInput
@@ -166,6 +180,7 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
   {showStartPicker && (
     <View style={styles.pickerContainer}>
       <DateTimePicker
+      themeVariant="light"
     value={datetimeStart}
     mode={Platform.OS === "android" ? startMode : "datetime"}
     display={Platform.OS === "ios" ? "spinner" : "default"}
@@ -231,6 +246,7 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
   {showEndPicker && (
     <View style={styles.pickerContainer}>
       <DateTimePicker
+      themeVariant="light"
     value={datetimeEnd}
     mode={Platform.OS === "android" ? endMode : "datetime"}
     display={Platform.OS === "ios" ? "spinner" : "default"}
@@ -279,6 +295,7 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
           <View key={catIndex} style={styles.categoryBox}>
             <TextInput
               placeholder={`Category ${catIndex + 1} Name`}
+              placeholderTextColor="#999"
               style={styles.input}
               value={cat.name}
               onChangeText={text => handleCategoryChange(catIndex, text)}
@@ -286,6 +303,7 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
 
             <TextInput
               placeholder={`Category ${catIndex + 1} Description`}
+              placeholderTextColor="#999"
               style={styles.input}
               value={cat.description}
               onChangeText={text => handleCategoryDescriptionChange(catIndex, text)}
@@ -294,6 +312,7 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
               <TextInput
                 key={nomIndex}
                 placeholder={`Nominee ${nomIndex + 1}`}
+                placeholderTextColor="#999"
                 style={styles.input}
                 value={nom}
                 onChangeText={text => handleNomineeChange(catIndex, nomIndex, text)}
@@ -309,9 +328,10 @@ const [endMode, setEndMode] = useState<"date" | "time">("date");
           <Text style={styles.addBtnText}>+ Add Category</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Create Poll</Text>
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+          {loading ? ( <ActivityIndicator color="#fff" />) : (<Text style={styles.buttonText}>Create Poll</Text>)}
         </TouchableOpacity>
+      </ScrollView>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
@@ -333,6 +353,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     marginBottom: 15,
+    color: "#111",
   },
   button: {
     backgroundColor: "#4281A6",
